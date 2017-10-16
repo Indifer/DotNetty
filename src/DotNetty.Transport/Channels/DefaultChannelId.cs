@@ -12,6 +12,7 @@ namespace DotNetty.Transport.Channels
     using DotNetty.Buffers;
     using DotNetty.Common.Internal;
     using DotNetty.Common.Internal.Logging;
+    using DotNetty.Common;
 
     sealed class DefaultChannelId : IChannelId
     {
@@ -47,19 +48,23 @@ namespace DotNetty.Transport.Channels
                 {
                     processId = -1;
                 }
-            }
-            if (processId < 0 || processId > MaxProcessId)
-            {
-                processId = -1;
-                Logger.Warn("-Dio.netty.processId: {0} (malformed)", customProcessId);
-            }
-            else if (Logger.DebugEnabled)
-            {
-                Logger.Debug("-Dio.netty.processId: {0} (user-set)", processId);
+                if (processId < 0 || processId > MaxProcessId)
+                {
+                    processId = -1;
+                    Logger.Warn("-Dio.netty.processId: {} (malformed)", customProcessId);
+                }
+                else if (Logger.DebugEnabled)
+                {
+                    Logger.Debug("-Dio.netty.processId: {} (user-set)", processId);
+                }
             }
             if (processId < 0)
             {
                 processId = DefaultProcessId();
+                if (Logger.DebugEnabled)
+                {
+                    Logger.Debug("-Dio.netty.processId: {} (auto-detected)", processId);
+                }
             }
             ProcessId = processId;
             byte[] machineId = null;
@@ -125,7 +130,7 @@ namespace DotNetty.Transport.Channels
 
         static int DefaultProcessId()
         {
-            int pId = Process.GetCurrentProcess().Id;
+            int pId = Platform.GetCurrentProcessId();
 
             if (pId <= 0)
             {
@@ -143,7 +148,7 @@ namespace DotNetty.Transport.Channels
 
         static byte[] DefaultMachineId()
         {
-            byte[] bestMacAddr = MacAddressUtil.GetBestAvailableMac();
+            byte[] bestMacAddr = Platform.GetDefaultDeviceId();
             if (bestMacAddr == null) {
                 bestMacAddr = new byte[MacAddressUtil.MacAddressLength];
                 ThreadLocalRandom.Value.NextBytes(bestMacAddr);
